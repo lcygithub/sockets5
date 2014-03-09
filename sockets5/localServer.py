@@ -7,13 +7,19 @@ import select
 from datetime import datetime
 import base64
 from encrypt import encrypt, decrypt
+import json
 
-Server_addr = "0.0.0.0"
-Server_port = 1080
-Server_listen = 5
-Auth = False
-Remote_server_addr = "0.0.0.0"
-Remote_server_port = 8080
+#config
+fp = file("config.json", "r")
+config = json.loads(fp.read())
+Server_addr = config["Local_server_addr"]
+Server_port = config["Local_server_port"]
+Remote_server_addr = config["Remote_server_addr"]
+Remote_server_port = config["Remote_server_port"]
+if config["Auth"] == "False":
+    Auth = False
+else:
+    Auth = True
 
 def make_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

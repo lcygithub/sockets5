@@ -6,15 +6,14 @@ import select
 import threading
 import struct
 from encrypt import encrypt, decrypt
+import json
 
-Remote_addr = "0.0.0.0"
-Remote_port = 8080
+# config
+fp = file("config.json", "r")
+config = json.loads(fp.read())
+Remote_addr = config["Remote_server_addr"]
+Remote_port = config["Remote_server_port"]
 
-# def encrypt(content):
-#     return content
-
-# def decrypt(content):
-#     return content
 
 def make_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

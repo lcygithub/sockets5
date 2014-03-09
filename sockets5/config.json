@@ -1,0 +1,9 @@
+{
+
+    "Remote_server_addr" : "0.0.0.0",
+    "Remote_server_port" : 8080,
+
+    "Local_server_addr" : "0.0.0.0",
+    "Local_server_port"   : 1080,
+    "Auth"         : "False"
+}

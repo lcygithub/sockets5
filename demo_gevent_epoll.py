@@ -11,7 +11,7 @@ EOL2 = "\n\r\n"
 events = []
 socks = []
 unsocks = []
-connections, messages, steps, corresponding, remotes_address, remotes_dict = {}, {}, {}, {}, {}, {}
+connections, messages, steps, corresponding, remotes_address, remotes_dict, fps = {}, {}, {}, {}, {}, {}, {}
 should_dead = []
 epoll = select.epoll()
 options = {
@@ -75,6 +75,7 @@ def clear_sock(fileno):
 def epoll_register(sock, opt, remote=False):
     global_log()
     sock.setblocking(0)
+    fps[sock.fileno()] = sock.makefile("w", 0)
     print remote
     print "sock.fileno():", sock.fileno()
     try:
@@ -143,9 +144,9 @@ def recv_argue(sock, size):
 
 def write_data(sock, data):
     try:
-        fp = sock.makefile("w", 0)
+        fp = fps[sock.fileno()]
         fp.write(data)
-        fp.close()
+        # fp.close()
         return True
 
     except socket.error, v:
@@ -203,6 +204,8 @@ def handle_request(step, fileno):
             epoll_register(remote, "both", True)
             print "add remote", remote
             make_corresponding(conn, remote)
+            fps[conn] = conn.makefile("w", 0)
+            fps[remote] = remote.makefile("w", 0)
             steps[fileno] += 1
 
     elif step == 5:
@@ -272,6 +275,7 @@ def main():
                 connections[fileno].close()
                 del connections[fileno]
                 del messages[fileno]
+                del fps[fileno]
                 del_dict(remotes_dict, fileno)
                 del_dict(remotes_address, fileno)
                 del_dict(steps, fileno)

@@ -149,13 +149,13 @@ def write_data(sock, data):
         return True
 
     except socket.error, v:
-        if v[0] == 32:
-            # Broken pipe
-            sock_fileno = sock.fileno()
-            cor_fileno = corresponding[sock_fileno]
-            epoll.modify(sock_fileno, 0)
-            epoll.modify(cor_fileno, 0)
-            del steps[sock_fileno]
+        print v
+
+def del_dict(dict, arg):
+    try:
+        del dict[arg]
+    except:
+        pass
 
 def handle_request(step, fileno):
     if step == 1:
@@ -216,29 +216,19 @@ def handle_request(step, fileno):
     elif step == 6:
         try:
             messages[fileno] += connections[fileno].recv(1024)
-            if EOL1 in messages[fileno] or EOL2 in messages[fileno] :
+            if EOL1 in messages[fileno] or EOL2 in messages[fileno]:
                 steps[fileno] += 1
         except socket.error, v:
-            handle_errors[v[0]]()
+            print v
 
     elif step == 7:
-        remote = corresponding[fileno]
-        if messages[remote]:
-            conn = connections[fileno]
-            print "write"
-            print repr(messages[remote])
-            write_data(conn, messages[remote])
-            messages[remote] = ""
-        else:
-            try:
-                remote = corresponding[fileno]
-            except KeyError:
-                epoll.modify(fileno, 0)
-                del steps[fileno]
-                print "messages[remote]:", messages[remote]
+        remote_fileno = corresponding[fileno]
+        if messages[remote_fileno]:
+            write_data(connections[fileno], messages[remote_fileno])
+            messages[remote_fileno] = ""
 
 def main():
-    global events
+    global eventvba3
     server = make_server()
     while True:
         # time.sleep(1)
@@ -255,40 +245,37 @@ def main():
                     step = steps[fileno]
                     handle_request(step, fileno)
                 except KeyError:
-                    print "messages[fileno]", repr(messages[fileno])
-                    if EOL1 not in messages[fileno] and EOL2 not in messages[fileno]:
-                        try:
-                            data = connections[fileno].recv(1024)
-                            messages[fileno] += data
-                            print "remote recv datas:", repr(data)
-                            if EOL1 in messages[fileno] or EOL2 in messages[fileno]:
-                                conn_fileno = corresponding[fileno]
-                                print "remote  modify", fileno
-                        except socket.error, v:
-                            if v[0] == 104:
-                                # Connection reset by peer
-                                conn_fileno = corresponding[fileno]
-                                epoll.modify(fileno, 0)
-                    else:
-                        should_dead.append(fileno)
+                    try:
+                        messages[fileno] += connections[fileno].recv(1024)
+                        # print ">+++++++++++++++++++++++++recv from remote", data
+                        # if len(data) == 0:
+                        #     print "modify ", fileno
+                        #     raw_input("stop")
+                        #     epoll.modify(fileno, 0)
+                        #     connections[fileno].shutdown(socket.SHUT_RDWR)
+                        #     conn_fileno = corresponding[fileno]
+                        #     steps[conn_fileno] += 1
+                    except socket.error, v:
+                        print v
 
             elif event & select.EPOLLOUT:
                 try:
                     step = steps[fileno]
                     handle_request(step, fileno)
                 except KeyError:
-                    remote = connections[fileno]
                     conn = corresponding[fileno]
                     data = messages[conn]
-                    write_data(remote, data)
+                    write_data(connections[fileno], data)
 
             elif event & select.EPOLLHUP:
                 epoll.unregister(fileno)
-                unsocks.append(fileno)
                 connections[fileno].close()
-                del corresponding[fileno]
                 del connections[fileno]
                 del messages[fileno]
+                del_dict(remotes_dict, fileno)
+                del_dict(remotes_address, fileno)
+                del_dict(steps, fileno)
+                del_dict(corresponding, fileno)
 
 if __name__ == '__main__':
     main()
